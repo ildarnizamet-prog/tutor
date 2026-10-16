@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Учитель · 8 класс</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: #f4f2fb; --surface: #ffffff; --ink: #17153b; --muted: #5d5a85; --line: #dedaf0;
+  --accent: #4b3fe0; --on-accent: #ffffff; --xp: #f59e0b;
+  --ok: #0f9d73; --ok-bg: #dcf5ec; --bad: #d93f4b; --bad-bg: #fde3e5;
+  --mission-bg: #ebe8ff; --mission-ink: #2c2596; --fact-bg: #fff3d6; --fact-ink: #5c3d00;
+  --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12102b; --surface: #1c1a40; --ink: #ece9ff; --muted: #a19ec9; --line: #34306a;
+    --accent: #8b80ff; --on-accent: #12102b; --xp: #fbbf24;
+    --ok: #34d3a0; --ok-bg: #0f3a31; --bad: #ff7b86; --bad-bg: #44181e;
+    --mission-bg: #2a2660; --mission-ink: #cfc9ff; --fact-bg: #3b2f0e; --fact-ink: #ffe2a0;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12102b; --surface: #1c1a40; --ink: #ece9ff; --muted: #a19ec9; --line: #34306a;
+  --accent: #8b80ff; --on-accent: #12102b; --xp: #fbbf24;
+  --ok: #34d3a0; --ok-bg: #0f3a31; --bad: #ff7b86; --bad-bg: #44181e;
+  --mission-bg: #2a2660; --mission-ink: #cfc9ff; --fact-bg: #3b2f0e; --fact-ink: #ffe2a0;
+}
+* { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-text-size-adjust: 100%; }
+body { padding: 16px 16px 28px; line-height: 1.4; }
+#app { max-width: 560px; margin: 0 auto; }
+button { font-family: inherit; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h2 { font-size: 1.2rem; margin: 26px 0 2px; }
+h3 { font-size: 1rem; margin: 20px 0 6px; }
+.sub { color: var(--muted); font-size: .92rem; margin-bottom: 10px; }
+
+/* Профиль игрока */
+.hero { display: flex; gap: 14px; align-items: center; padding: 6px 0 4px; }
+.lvl { flex: none; width: 76px; height: 76px; border-radius: 22px; background: var(--accent); color: var(--on-accent);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.lvl-n { font-size: 2.1rem; font-weight: 800; line-height: 1; }
+.lvl-t { font-size: .72rem; margin-top: 2px; opacity: .85; }
+.hero-main { flex: 1; min-width: 0; }
+.hello { font-size: 1.25rem; font-weight: 700; }
+.rank { color: var(--muted); font-size: .95rem; margin-bottom: 8px; }
+.xpbar { height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.xpbar i { display: block; height: 100%; background: var(--xp); border-radius: 6px; transition: width .4s ease; }
+.hero-meta { color: var(--muted); font-size: .85rem; margin-top: 6px; }
+
+/* Миссия дня: настоящая последовательность, поэтому линия с узлами */
+.quest { list-style: none; margin: 8px 0 0; padding: 0; position: relative; }
+.quest li { position: relative; padding: 10px 12px 10px 44px; cursor: pointer; border-radius: 12px; }
+.quest li::before { content: ""; position: absolute; left: 17px; top: 0; bottom: 0; width: 3px; background: var(--line); }
+.quest li:first-child::before { top: 50%; }
+.quest li:last-child::before { bottom: 50%; }
+.quest li::after { content: attr(data-mark); position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 3px solid var(--line);
+  display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: var(--muted); }
+.quest li.done::after { background: var(--ok); border-color: var(--ok); color: #fff; }
+.quest li.current::after { border-color: var(--accent); color: var(--accent); }
+.quest li.current { background: var(--surface); }
+.q-title { font-weight: 700; }
+.q-sub { color: var(--muted); font-size: .85rem; }
+
+.btn { display: block; width: 100%; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 14px;
+  padding: 14px 16px; font-size: 1.02rem; font-weight: 700; cursor: pointer; margin-top: 14px; }
+.btn.quiet { background: none; color: var(--muted); font-weight: 500; font-size: .9rem; padding: 8px; margin-top: 6px; }
+.done-note { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--ok-bg); color: var(--ok); font-weight: 700; }
+
+/* Все темы */
+.topic { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 11px 2px;
+  border-bottom: 1px solid var(--line); cursor: pointer; }
+.topic b { font-weight: 600; }
+.topic span { color: var(--muted); font-size: .82rem; text-align: right; }
+.topic.ok span { color: var(--ok); }
+
+/* Урок */
+.back { background: none; border: 0; color: var(--muted); font-size: .95rem; padding: 4px 0; cursor: pointer; }
+.lesson-title { font-size: 1.3rem; margin: 6px 0 10px; }
+.mission { background: var(--mission-bg); color: var(--mission-ink); border-radius: 14px; padding: 10px 14px; font-size: .95rem; margin-bottom: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.panel p { margin: 0 0 10px; }
+.fact { background: var(--fact-bg); color: var(--fact-ink); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: .95rem; }
+.progress { color: var(--muted); font-size: .88rem; margin: 2px 0 8px; display: flex; gap: 5px; align-items: center; }
+.dots { display: flex; gap: 5px; }
+.dots i { width: 22px; height: 6px; border-radius: 4px; background: var(--line); }
+.dots i.on { background: var(--accent); }
+.q { font-size: 1.12rem; font-weight: 700; margin: 0 0 14px; }
+.opt { display: block; width: 100%; text-align: left; background: var(--bg); color: var(--ink); border: 2px solid var(--line);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 9px; font-size: 1rem; cursor: pointer; }
+.opt:disabled { cursor: default; }
+.opt.right { border-color: var(--ok); background: var(--ok-bg); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.explain { margin: 8px 0 2px; }
+.result { font-size: 1.15rem; font-weight: 800; margin: 0 0 6px; }
+.gain { color: var(--xp); font-weight: 800; }
+.levelup { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.footer { color: var(--muted); font-size: .8rem; margin-top: 30px; }
+@media (prefers-reduced-motion: reduce) { .xpbar i { transition: none; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="lessons.js"></script>
+<script src="lessons-extra.js"></script>
+<script id="app-code">
+var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+var STORE_KEY = "tutor_state_v1";
+var TITLES = ["Новичок", "Исследователь", "Искатель знаний", "Мастер", "Легенда"];
+var _now = function () { return new Date(); };
+var state = freshState();
+var cur = null;
+
+function freshState() { return { xp: 0, done: {}, streak: 0, lastDay: null, plan: null }; }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function plural(n, f) {
+  var a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return f[2];
+  if (b > 1 && b < 5) return f[1];
+  if (b === 1) return f[0];
+  return f[2];
+}
+function ymd(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function todayStr() { return ymd(_now()); }
+function yesterdayStr() { var d = _now(); d.setDate(d.getDate() - 1); return ymd(d); }
+function keyOf(sid, id) { return sid + ":" + id; }
+function subjectOf(sid) { return SUBJECTS.filter(function (s) { return s.id === sid; })[0]; }
+function lessonOf(sid, id) { return (LESSONS[sid] || []).filter(function (l) { return l.id === id; })[0] || null; }
+function levelInfo(xp) {
+  var level = Math.floor(xp / 100) + 1;
+  return { level: level, into: xp % 100, title: TITLES[Math.min(level - 1, TITLES.length - 1)] };
+}
+function displayStreak() {
+  return (state.lastDay === todayStr() || state.lastDay === yesterdayStr()) ? state.streak : 0;
+}
+function userName() {
+  try {
+    var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    return u && u.first_name ? u.first_name : "";
+  } catch (e) { return ""; }
+}
+
+/* ───── Хранение прогресса: Telegram CloudStorage + localStorage ───── */
+function cloudOk() {
+  try { return !!(tg && tg.CloudStorage && typeof tg.isVersionAtLeast === "function" && tg.isVersionAtLeast("6.9")); }
+  catch (e) { return false; }
+}
+function serialize() {
+  return JSON.stringify({ v: 1, xp: state.xp, done: Object.keys(state.done), streak: state.streak, lastDay: state.lastDay, plan: state.plan });
+}
+function parseSaved(raw) {
+  if (!raw) return null;
+  try {
+    var o = JSON.parse(raw);
+    if (!o || typeof o !== "object") return null;
+    var s = freshState();
+    s.xp = Number(o.xp) || 0;
+    (Array.isArray(o.done) ? o.done : []).forEach(function (k) { if (typeof k === "string") s.done[k] = true; });
+    s.streak = Number(o.streak) || 0;
+    s.lastDay = typeof o.lastDay === "string" ? o.lastDay : null;
+    s.plan = (o.plan && Array.isArray(o.plan.items)) ? o.plan : null;
+    return s;
+  } catch (e) { return null; }
+}
+function readLocal() { try { return localStorage.getItem(STORE_KEY); } catch (e) { return null; } }
+function save() {
+  var raw = serialize();
+  try { localStorage.setItem(STORE_KEY, raw); } catch (e) {}
+  // CloudStorage хранит до 4096 символов на значение
+  if (cloudOk() && raw.length <= 4000) {
+    try { tg.CloudStorage.setItem(STORE_KEY, raw, function () {}); } catch (e) {}
+  }
+}
+function pickNewer(a, b) { if (a && b) return b.xp > a.xp ? b : a; return a || b; }
+function loadState(cb) {
+  var local = parseSaved(readLocal());
+  var finished = false;
+  function finish(cloud) {
+    if (finished) return;
+    finished = true;
+    state = pickNewer(cloud, local) || freshState();
+    cb();
+  }
+  if (!cloudOk()) { finish(null); return; }
+  var timer = setTimeout(function () { finish(null); }, 1500);
+  try {
+    tg.CloudStorage.getItem(STORE_KEY, function (err, val) {
+      clearTimeout(timer);
+      finish(err ? null : parseSaved(val));
+    });
+  } catch (e) { clearTimeout(timer); finish(null); }
+}
+
+/* ───── План на день: следующая непройденная тема в каждом предмете ───── */
+function nextLessonFor(sid) {
+  var list = LESSONS[sid] || [];
+  for (var i = 0; i < list.length; i++) {
+    if (!state.done[keyOf(sid, list[i].id)]) return { sid: sid, id: list[i].id, review: false };
+  }
+  var dayN = Math.floor(_now().getTime() / 86400000);
+  return { sid: sid, id: list[dayN % list.length].id, review: true };
+}
+function planValid(p) {
+  return p && p.date === todayStr() && Array.isArray(p.items) && p.items.length > 0 &&
+    p.items.every(function (it) { return lessonOf(it.sid, it.id); });
+}
+function ensurePlan() {
+  if (planValid(state.plan)) return;
+  var items = SUBJECTS.filter(function (s) { return (LESSONS[s.id] || []).length > 0; })
+    .map(function (s) { return nextLessonFor(s.id); });
+  state.plan = { date: todayStr(), items: items, done: {}, bonus: false };
+  save();
+}
+function planDoneCount() {
+  return state.plan.items.filter(function (it) { return state.plan.done[keyOf(it.sid, it.id)]; }).length;
+}
+function remainingPlan() {
+  return state.plan.items.filter(function (it) { return !state.plan.done[keyOf(it.sid, it.id)]; });
+}
+
+/* ───── Экраны ───── */
+function render() {
+  document.getElementById("app").innerHTML = cur ? renderLesson() : renderHome();
+  syncBackButton();
+}
+function renderHome() {
+  ensurePlan();
+  var li = levelInfo(state.xp), name = userName(), st = displayStreak();
+  var h = '<div class="hero"><div class="lvl"><span class="lvl-n">' + li.level + '</span><span class="lvl-t">уровень</span></div>' +
+    '<div class="hero-main"><div class="hello">' + (name ? "Привет, " + esc(name) + "!" : "Привет!") + '</div>' +
+    '<div class="rank">' + esc(li.title) + '</div>' +
+    '<div class="xpbar"><i style="width:' + li.into + '%"></i></div>' +
+    '<div class="hero-meta">До следующего уровня ' + (100 - li.into) + ' XP · серия ' + st + " " + plural(st, ["день", "дня", "дней"]) + "</div></div></div>";
+  var items = state.plan.items, done = planDoneCount(), firstOpen = -1;
+  items.forEach(function (it, i) { if (firstOpen < 0 && !state.plan.done[keyOf(it.sid, it.id)]) firstOpen = i; });
+  h += "<h2>Миссия дня</h2><div class=\"sub\">Выполнено " + done + " из " + items.length + " · около 30–45 минут</div><ol class=\"quest\">";
+  items.forEach(function (it, i) {
+    var s = subjectOf(it.sid), l = lessonOf(it.sid, it.id), isDone = !!state.plan.done[keyOf(it.sid, it.id)];
+    var cls = isDone ? "done" : (i === firstOpen ? "current" : "");
+    h += '<li class="' + cls + '" data-mark="' + (isDone ? "✓" : (i + 1)) + '" onclick="openPlanItem(' + i + ')">' +
+      '<div class="q-title">' + s.icon + " " + esc(s.name) + ": " + esc(l.title) + "</div>" +
+      '<div class="q-sub">' + (it.review ? "повторение" : esc(l.mission)) + "</div></li>";
+  });
+  h += "</ol>";
+  if (done < items.length) {
+    h += '<button class="btn" onclick="startPlan()">' + (done === 0 ? "Начать миссию дня" : "Продолжить миссию") + "</button>";
+  } else {
+    h += '<div class="done-note">Миссия дня выполнена! Возвращайся завтра за новой.</div>';
+  }
+  h += "<h2>Все темы</h2>";
+  SUBJECTS.forEach(function (s) {
+    var list = LESSONS[s.id] || [];
+    if (!list.length) return;
+    h += "<h3>" + s.icon + " " + esc(s.name) + "</h3>";
+    list.forEach(function (l) {
+      var ok = state.done[keyOf(s.id, l.id)];
+      h += '<div class="topic' + (ok ? " ok" : "") + '" onclick="startLesson(\'' + s.id + "','" + l.id + '\')"><b>' + esc(l.title) + "</b><span>" +
+        (ok ? "пройдено" : "новая") + "</span></div>";
+    });
+  });
+  h += '<div class="footer">Прогресс сохраняется автоматически. <button class="back" onclick="resetProgress()">Сбросить прогресс</button></div>';
+  return h;
+}
+function renderLesson() {
+  var s = subjectOf(cur.sid), l = lessonOf(cur.sid, cur.lid), n = l.questions.length;
+  var h = '<button class="back" onclick="goHome()">← К списку тем</button>' +
+    '<h1 class="lesson-title">' + s.icon + " " + esc(l.title) + "</h1>" +
+    '<div class="mission">🎮 ' + esc(l.mission) + "</div>";
+  if (cur.step === -1) {
+    h += '<div class="panel"><p>' + esc(l.theory) + "</p>" +
+      (l.fact ? '<div class="fact">💡 Интересный факт: ' + esc(l.fact) + "</div>" : "") + "</div>" +
+      '<button class="btn" onclick="nextStep()">К заданиям</button>';
+  } else if (cur.step < n) {
+    var q = l.questions[cur.step];
+    h += '<div class="progress"><span class="dots">';
+    for (var d = 0; d < n; d++) h += '<i class="' + (d <= cur.step ? "on" : "") + '"></i>';
+    h += "</span> вопрос " + (cur.step + 1) + " из " + n + '</div><div class="panel"><p class="q">' + esc(q.q) + "</p>";
+    cur.order.forEach(function (orig) {
+      var cls = "opt";
+      if (cur.answered) {
+        if (orig === q.answer) cls += " right";
+        else if (orig === cur.picked) cls += " wrong";
+      }
+      h += '<button class="' + cls + '" ' + (cur.answered ? "disabled" : "") + ' onclick="pick(' + orig + ')">' + esc(q.options[orig]) + "</button>";
+    });
+    if (cur.answered) {
+      h += '<p class="explain">' + (cur.picked === q.answer ? "✅ Верно! " : "❌ Неверно. ") + esc(q.explain) + "</p>" +
+        '<button class="btn" onclick="nextStep()">' + (cur.step === n - 1 ? "Показать итог" : "Дальше") + "</button>";
+    }
+    h += "</div>";
+  } else {
+    h += '<div class="panel"><p class="result">' + (cur.correct === n ? "Отлично! " : "Готово! ") + "Верно: " + cur.correct + " из " + n + "</p>" +
+      '<p>Опыт за тему: <span class="gain">+' + cur.gain + " XP</span>" + (cur.bonus ? ' и <span class="gain">+' + cur.bonus + " XP</span> за всю миссию дня" : "") +
+      (cur.review ? " (повторение: опыт в два раза меньше)" : "") + "</p>" +
+      (cur.levelUp ? '<div class="levelup">Новый уровень: ' + cur.levelUp.level + " — " + esc(cur.levelUp.title) + "</div>" : "") + "</div>";
+    if (cur.queue && cur.queue.length > 0) h += '<button class="btn" onclick="nextInQueue()">Следующая тема миссии</button>';
+    h += '<button class="btn' + (cur.queue && cur.queue.length ? " quiet" : "") + '" onclick="goHome()">На главный экран</button>';
+  }
+  return h;
+}
+
+/* ───── Действия ───── */
+function shuffled(n) {
+  var a = [], i, j, t;
+  for (i = 0; i < n; i++) a.push(i);
+  for (i = n - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+function startLesson(sid, id, queue) {
+  if (!lessonOf(sid, id)) return;
+  cur = { sid: sid, lid: id, step: -1, correct: 0, answered: false, picked: null, order: null, queue: queue || null, gain: 0, bonus: 0, levelUp: null, review: false };
+  render();
+  window.scrollTo(0, 0);
+}
+function openPlanItem(i) {
+  var it = state.plan.items[i];
+  if (!it) return;
+  var rest = remainingPlan().filter(function (x) { return !(x.sid === it.sid && x.id === it.id); });
+  startLesson(it.sid, it.id, rest);
+}
+function startPlan() {
+  var rest = remainingPlan();
+  if (!rest.length) return;
+  startLesson(rest[0].sid, rest[0].id, rest.slice(1));
+}
+function nextInQueue() {
+  if (!cur || !cur.queue || !cur.queue.length) { goHome(); return; }
+  startLesson(cur.queue[0].sid, cur.queue[0].id, cur.queue.slice(1));
+}
+function goHome() { cur = null; render(); window.scrollTo(0, 0); }
+function haptic(kind) { try { tg.HapticFeedback.notificationOccurred(kind); } catch (e) {} }
+function pick(orig) {
+  if (!cur || cur.answered || cur.step < 0) return;
+  var q = lessonOf(cur.sid, cur.lid).questions[cur.step];
+  cur.picked = orig;
+  cur.answered = true;
+  if (orig === q.answer) { cur.correct++; haptic("success"); } else { haptic("error"); }
+  render();
+}
+function nextStep() {
+  if (!cur) return;
+  var l = lessonOf(cur.sid, cur.lid), n = l.questions.length;
+  if (cur.step === n - 1) finishLesson();
+  cur.step++;
+  cur.answered = false;
+  cur.picked = null;
+  if (cur.step >= 0 && cur.step < n) cur.order = shuffled(l.questions[cur.step].options.length);
+  render();
+  window.scrollTo(0, 0);
+}
+function finishLesson() {
+  var key = keyOf(cur.sid, cur.lid), first = !state.done[key];
+  var levelBefore = levelInfo(state.xp).level;
+  cur.review = !first;
+  cur.gain = cur.correct * (first ? 10 : 5);
+  state.xp += cur.gain;
+  state.done[key] = true;
+  var today = todayStr();
+  if (state.lastDay !== today) {
+    state.streak = (state.lastDay === yesterdayStr()) ? state.streak + 1 : 1;
+    state.lastDay = today;
+  }
+  ensurePlan();
+  var inPlan = state.plan.items.some(function (it) { return it.sid === cur.sid && it.id === cur.lid; });
+  if (inPlan) {
+    state.plan.done[key] = true;
+    if (!state.plan.bonus && planDoneCount() === state.plan.items.length) {
+      state.plan.bonus = true;
+      cur.bonus = 30;
+      state.xp += 30;
+    }
+  }
+  var after = levelInfo(state.xp);
+  if (after.level > levelBefore) cur.levelUp = after;
+  save();
+}
+function resetProgress() {
+  var go = function () { state = freshState(); cur = null; ensurePlan(); save(); render(); };
+  var msg = "Сбросить весь прогресс? Опыт и пройденные темы будут удалены.";
+  if (tg && typeof tg.showConfirm === "function" && cloudOk()) { tg.showConfirm(msg, function (ok) { if (ok) go(); }); }
+  else if (window.confirm(msg)) { go(); }
+}
+
+/* ───── Интеграция с Telegram ───── */
+function syncBackButton() {
+  try { if (tg && tg.BackButton) { if (cur) tg.BackButton.show(); else tg.BackButton.hide(); } } catch (e) {}
+}
+function applyTelegramTheme() {
+  if (!tg) return;
+  try { if (tg.colorScheme) document.documentElement.setAttribute("data-theme", tg.colorScheme); } catch (e) {}
+  try {
+    var bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    if (bg) { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); }
+  } catch (e) {}
+}
+function init() {
+  if (tg) {
+    try { tg.ready(); tg.expand(); } catch (e) {}
+    applyTelegramTheme();
+    try { tg.onEvent("themeChanged", applyTelegramTheme); } catch (e) {}
+    try { if (tg.BackButton) tg.BackButton.onClick(goHome); } catch (e) {}
+  }
+  document.getElementById("app").innerHTML = '<div class="sub">Загрузка…</div>';
+  loadState(function () { ensurePlan(); render(); });
+}
+init();
+</script>
+</body>
+</html>
